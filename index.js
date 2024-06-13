@@ -4,10 +4,12 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001; // Use process.env.PORT for dynamic port binding
 
 app.use(cors());
+app.use(bodyParser.json());
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -17,9 +19,6 @@ const pool = new Pool({
     password: 'root',
     port: 5432,
 });
-module.exports = pool;
-
-app.use(bodyParser.json());
 
 // Middleware for authenticating JWT tokens
 const authenticateToken = (req, res, next) => {
@@ -93,12 +92,14 @@ app.post('/login', async (req, res) => {
 
 // Create a form
 app.post('/forms', authenticateToken, async (req, res) => {
-    const {  title, name } = req.body;
+    const { title, name } = req.body;
 
     // Validate user_id and title
-    if ( !title) {
-        return res.status(400).json({ error: 'title are required' });
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required' });
     }
+
+    const user_id = req.user.id; // Retrieve user_id from authenticated user
 
     try {
         const query = 'INSERT INTO forms (user_id, title, name) VALUES ($1, $2, $3) RETURNING *';
@@ -111,6 +112,48 @@ app.post('/forms', authenticateToken, async (req, res) => {
     }
 });
 
+
+app.get('/forms', authenticateToken, async (req, res) => {
+    const user_id = req.user.id; // Retrieve user_id from authenticated user
+
+
+    try {
+        const result = await pool.query('SELECT * FROM forms WHERE user_id = $1', [user_id]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Delete a form
+app.delete('/forms/:formId', authenticateToken, async (req, res) => {
+    const { formId } = req.params;
+    const user_id = req.user.id; // Retrieve user_id from authenticated user
+
+    try {
+        // Verify that the form exists and belongs to the authenticated user
+        const formQuery = 'SELECT * FROM forms WHERE id = $1 AND user_id = $2';
+        const formResult = await pool.query(formQuery, [formId, user_id]);
+
+        if (formResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        // Delete the form
+        const deleteQuery = 'DELETE FROM forms WHERE id = $1 AND user_id = $2';
+        await pool.query(deleteQuery, [formId, user_id]);
+
+        res.status(204).send(); // 204 No Content
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+
+
 // Add fields to a form
 app.post('/forms/:formId/fields', authenticateToken, async (req, res) => {
     const { formId } = req.params;
@@ -120,25 +163,22 @@ app.post('/forms/:formId/fields', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'Type and label are required' });
     }
 
+    const validTypes = [
+        'single_input', 'multi_input', 'phone_number',
+        'single_select', 'multi_select', 'dropdown_list',
+        'date', 'give_star_rating', 'signature', 'file_upload'
+    ];
+
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({ error: 'Invalid field type' });
+    }
+
     try {
-        // Validate type
-        const validTypes = [
-            'single_input', 'multi_input', 'phone_number',
-            'single_select', 'multi_select', 'dropdown_list',
-            'date', 'give_star_rating', 'signature', 'file_upload'
-        ];
-
-        if (!validTypes.includes(type)) {
-            return res.status(400).json({ error: 'Invalid field type' });
-        }
-
-        // Insert field into database
         let query, values;
-        if (type === 'single_input' || type === 'multi_input' || type === 'phone_number' ||
-            type === 'signature' || type === 'file_upload' || type === 'date' || type === 'give_star_rating') {
+        if (['single_input', 'multi_input', 'phone_number', 'signature', 'file_upload', 'date', 'give_star_rating'].includes(type)) {
             query = 'INSERT INTO fields (form_id, type, label) VALUES ($1, $2, $3) RETURNING *';
             values = [formId, type, label];
-        } else if (type === 'single_select' || type === 'multi_select' || type === 'dropdown_list') {
+        } else {
             if (!options || options.length === 0) {
                 return res.status(400).json({ error: 'Options are required for this field type' });
             }
@@ -181,6 +221,9 @@ app.get('/forms/:formId/fields', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
+
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
