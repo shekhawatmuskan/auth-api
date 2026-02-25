@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
 const app = express();
-const port = process.env.PORT || 3001; // Use process.env.PORT for dynamic port binding
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -53,7 +53,7 @@ app.post("/signup", async (req, res) => {
   try {
     const userExists = await pool.query(
       "SELECT * FROM users WHERE email = $1",
-      [email]
+      [email],
     );
     if (userExists.rows.length > 0) {
       return res.status(400).json({ error: "User already has an account" });
@@ -62,7 +62,7 @@ app.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
       "INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING *",
-      [email, hashedPassword, username]
+      [email, hashedPassword, username],
     );
     res
       .status(201)
@@ -99,7 +99,7 @@ app.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email },
       "your_jwt_secret",
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
     res
       .status(200)
@@ -119,7 +119,7 @@ app.post("/forms", authenticateToken, async (req, res) => {
     return res.status(400).json({ error: "Title is required" });
   }
 
-  const user_id = req.user.id; // Retrieve user_id from authenticated user
+  const user_id = req.user.id;
 
   try {
     const query =
