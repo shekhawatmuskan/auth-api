@@ -175,7 +175,7 @@ app.delete("/forms/:formId", authenticateToken, async (req, res) => {
 app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   const { formId } = req.params;
   const { blockType, blockData } = req.body;
-  const userId = req.user.id; // Retrieve user_id from authenticated user
+  const userId = req.user.id;
 
   // Validate blockType and blockData
   if (!blockType || !blockData) {
@@ -183,7 +183,6 @@ app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   }
 
   try {
-    // Verify that the form exists and belongs to the authenticated user
     const formQuery = "SELECT * FROM forms WHERE id = $1 AND user_id = $2";
     const formResult = await pool.query(formQuery, [formId, userId]);
 
@@ -195,7 +194,6 @@ app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
     const blocks = form.blocks || [];
     blocks.push({ blockType, blockData });
 
-    // Update the form with the new block
     const updateQuery =
       "UPDATE forms SET blocks = $1 WHERE id = $2 RETURNING *";
     const result = await pool.query(updateQuery, [blocks, formId]);
