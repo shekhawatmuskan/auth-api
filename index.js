@@ -177,7 +177,6 @@ app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   const { blockType, blockData } = req.body;
   const userId = req.user.id;
 
-  // Validate blockType and blockData
   if (!blockType || !blockData) {
     return res.status(400).json({ error: "Block type and data are required" });
   }
