@@ -207,7 +207,7 @@ app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
 // Get blocks of a form
 app.get("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   const { formId } = req.params;
-  const userId = req.user.id; // Retrieve user_id from authenticated user
+  const userId = req.user.id; 
 
   try {
     
