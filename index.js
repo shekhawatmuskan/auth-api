@@ -204,7 +204,7 @@ app.post("/forms/:formId/blocks", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-// Get blocks of a form
+
 app.get("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   const { formId } = req.params;
   const userId = req.user.id; 
