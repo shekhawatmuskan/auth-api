@@ -210,7 +210,7 @@ app.get("/forms/:formId/blocks", authenticateToken, async (req, res) => {
   const userId = req.user.id; // Retrieve user_id from authenticated user
 
   try {
-    // Verify that the form exists and belongs to the authenticated user
+    
     const formQuery = "SELECT * FROM forms WHERE id = $1 AND user_id = $2";
     const formResult = await pool.query(formQuery, [formId, userId]);
 
